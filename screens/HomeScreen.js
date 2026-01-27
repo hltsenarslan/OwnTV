@@ -4,14 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import defaultChannels from '../assets/channels.json';
 import { loadChannels } from '../utils/storage';
-
-const BG_IMAGES = [
-    'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=1920&auto=format&fit=crop', // Coffee
-    'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?q=80&w=1920&auto=format&fit=crop', // Forest
-    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=1920&auto=format&fit=crop', // Nature
-    'https://images.unsplash.com/photo-1501854140884-074bf86ee911?q=80&w=1920&auto=format&fit=crop', // Dark Space
-    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920&auto=format&fit=crop', // Tech
-];
+import { initializeBackground, prefetchNextBackground } from '../utils/backgroundManager';
 
 const FocusableCard = ({ item, onPress }) => {
     const [focused, setFocused] = useState(false);
@@ -37,7 +30,7 @@ const FocusableCard = ({ item, onPress }) => {
 
 export default function HomeScreen({ navigation }) {
     const insets = useSafeAreaInsets();
-    const [bgImage, setBgImage] = useState(BG_IMAGES[0]);
+    const [bgImage, setBgImage] = useState(null); // URL or file path
     const [channels, setChannels] = useState([]);
 
     useFocusEffect(
@@ -51,11 +44,15 @@ export default function HomeScreen({ navigation }) {
     );
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            const randomIndex = Math.floor(Math.random() * BG_IMAGES.length);
-            setBgImage(BG_IMAGES[randomIndex]);
-        }, 15 * 60 * 1000); // 15 minutes
-        return () => clearInterval(interval);
+        const setupBg = async () => {
+            // 1. Get the current background (from cache or download first time)
+            const uri = await initializeBackground();
+            if (uri) setBgImage(uri);
+
+            // 2. Prefetch the next background for future use
+            prefetchNextBackground();
+        };
+        setupBg();
     }, []);
 
     const { width: screenWidth } = useWindowDimensions();
@@ -90,8 +87,12 @@ export default function HomeScreen({ navigation }) {
         </View>
     );
 
+    // If no background logic is ready yet, we can fallback or just wait. ImageBackground handles null source gracefully-ish (shows nothing).
+    // But we can add a default plain bg just in case.
+    const imageSource = bgImage ? { uri: bgImage } : { uri: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1920&auto=format&fit=crop' };
+
     return (
-        <ImageBackground source={{ uri: bgImage }} style={styles.background}>
+        <ImageBackground source={imageSource} style={styles.background}>
             <View style={styles.overlay} />
             <View style={[styles.container, {
                 paddingTop: insets.top + 20,
@@ -122,8 +123,7 @@ export default function HomeScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     background: { flex: 1, width: '100%', height: '100%' },
-    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' },
-    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' },
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.60)' }, // Lighter overlay
     container: { flex: 1, padding: 30, justifyContent: 'center' },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     title: { fontSize: 36, color: '#fff', fontWeight: 'bold', marginLeft: 10 },
