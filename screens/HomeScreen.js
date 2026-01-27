@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ImageBackground, Dimensions, Alert, Platform, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import defaultChannels from '../assets/channels.json';
+// import defaultChannels from '../assets/channels.json'; // Removed dummy channels
 import { loadChannels } from '../utils/storage';
 import { initializeBackground, prefetchNextBackground } from '../utils/backgroundManager';
 
-const FocusableCard = ({ item, onPress }) => {
+const FocusableCard = ({ item, onPress, hasTVPreferredFocus }) => {
     const [focused, setFocused] = useState(false);
 
     return (
@@ -16,6 +16,7 @@ const FocusableCard = ({ item, onPress }) => {
             onFocus={() => setFocused(true)}
             onBlur={() => setFocused(false)}
             activeOpacity={0.7}
+            hasTVPreferredFocus={hasTVPreferredFocus}
         >
             {/* Use a default image or broken image handler if needed, but for now assuming URLs work */}
             {item.logo ? (
@@ -24,6 +25,22 @@ const FocusableCard = ({ item, onPress }) => {
                 <View style={styles.placeholderLogo} />
             )}
             <Text style={styles.channelName}>{item.name}</Text>
+        </TouchableOpacity>
+    );
+};
+
+// Helper for Settings Button Focus
+const FocusableButton = ({ onPress, style, children, focusedStyle }) => {
+    const [focused, setFocused] = useState(false);
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={[style, focused && (focusedStyle || styles.buttonFocused)]}
+            activeOpacity={0.7}
+        >
+            {children}
         </TouchableOpacity>
     );
 };
@@ -37,7 +54,7 @@ export default function HomeScreen({ navigation }) {
         React.useCallback(() => {
             const load = async () => {
                 const saved = await loadChannels();
-                setChannels(saved && saved.length > 0 ? saved : defaultChannels);
+                setChannels(saved || []); // No fallback to defaultChannels
             };
             load();
         }, [])
@@ -83,6 +100,7 @@ export default function HomeScreen({ navigation }) {
             <FocusableCard
                 item={item}
                 onPress={() => navigation.navigate('Player', { channelIndex: index })}
+                hasTVPreferredFocus={index === 0} // FORCE FOCUS on the first element
             />
         </View>
     );
@@ -103,19 +121,32 @@ export default function HomeScreen({ navigation }) {
                 <View style={styles.header}>
                     <Text style={styles.title}>Canlı TV</Text>
                     <View style={styles.headerButtons}>
-                        <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Settings')}>
+                        <FocusableButton style={styles.iconButton} onPress={() => navigation.navigate('Settings')}>
                             <Text style={styles.iconText}>⚙️</Text>
-                        </TouchableOpacity>
+                        </FocusableButton>
                     </View>
                 </View>
-                <FlatList
-                    data={channels}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item.id}
-                    numColumns={numColumns}
-                    key={numColumns} // Force re-render when columns change
-                    contentContainerStyle={styles.grid}
-                />
+                {channels.length === 0 ? (
+                    <View style={styles.emptyStateContainer}>
+                        <Text style={styles.emptyStateText}>Listeyi görüntülemek için ayarlardan kanal ekleyiniz</Text>
+                        <FocusableButton
+                            style={styles.ctaButton}
+                            onPress={() => navigation.navigate('Settings')}
+                            focusedStyle={styles.ctaButtonFocused}
+                        >
+                            <Text style={styles.ctaButtonText}>Kanalları Ayarla</Text>
+                        </FocusableButton>
+                    </View>
+                ) : (
+                    <FlatList
+                        data={channels}
+                        renderItem={renderItem}
+                        keyExtractor={(item) => item.id}
+                        numColumns={numColumns}
+                        key={numColumns}
+                        contentContainerStyle={styles.grid}
+                    />
+                )}
             </View>
         </ImageBackground>
     );
@@ -142,9 +173,21 @@ const styles = StyleSheet.create({
         borderColor: 'transparent',
     },
     cardFocused: {
-        borderColor: '#00BFFF', // DeepSkyBlue
-        backgroundColor: 'rgba(255,255,255,0.15)',
-        transform: [{ scale: 1.05 }],
+        backgroundColor: 'rgba(255, 105, 180, 0.8)', // Pink overlay
+        transform: [{ scale: 1.1 }],
+        borderColor: '#FFFFFF',
+        borderWidth: 3,
+        shadowColor: "#FF69B4",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 10,
+        elevation: 10,
+    },
+    buttonFocused: {
+        backgroundColor: '#FF69B4',
+        borderColor: '#FFF',
+        borderWidth: 3,
+        transform: [{ scale: 1.1 }],
     },
     logo: { width: '60%', height: '60%', marginBottom: 15 },
     placeholderLogo: {
@@ -155,4 +198,38 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     channelName: { color: '#eee', fontSize: 16, fontWeight: '600', textAlign: 'center' },
+    emptyStateContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emptyStateText: {
+        color: '#fff',
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    ctaButton: {
+        backgroundColor: '#007AFF',
+        paddingHorizontal: 30,
+        paddingVertical: 15,
+        borderRadius: 10,
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    ctaButtonText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    ctaButtonFocused: {
+        backgroundColor: '#FF1493', // Deep Pink
+        transform: [{ scale: 1.1 }],
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+        shadowColor: "#FF69B4",
+        shadowOpacity: 0.5,
+        elevation: 10,
+    },
 });

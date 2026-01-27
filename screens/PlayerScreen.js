@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Text, Dimensions, TVEventHandler, Platform, TouchableWithoutFeedback, PanResponder, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, Text, Dimensions, Platform, TouchableWithoutFeedback, PanResponder, TouchableOpacity } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Brightness from 'expo-brightness';
@@ -9,6 +9,22 @@ import defaultChannels from '../assets/channels.json';
 import { loadChannels } from '../utils/storage';
 
 const { width, height } = Dimensions.get('window');
+
+// Helper Component for Focus Handling
+const FocusableButton = ({ onPress, style, children, focusStyle }) => {
+    const [focused, setFocused] = useState(false);
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={[style, focused && (focusStyle || styles.focusedItem)]}
+            activeOpacity={0.7}
+        >
+            {children}
+        </TouchableOpacity>
+    );
+};
 
 export default function PlayerScreen({ route, navigation }) {
     const { channelIndex: initialIndex } = route.params;
@@ -38,6 +54,7 @@ export default function PlayerScreen({ route, navigation }) {
     const startValue = useRef(0); // stores initial Vol/Bright at start of gesture
 
     useEffect(() => {
+
         const load = async () => {
             const saved = await loadChannels();
             setChannelList(saved && saved.length > 0 ? saved : defaultChannels);
@@ -47,70 +64,57 @@ export default function PlayerScreen({ route, navigation }) {
 
         // Lock to landscape & Permission
         const setup = async () => {
-            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-            const { status } = await Brightness.requestPermissionsAsync();
-            if (status === 'granted') {
-                const cur = await Brightness.getBrightnessAsync();
-                setBrightness(cur);
+            try {
+                // Orientation is usually fixed on TV, locking might error or be useless
+                if (!Platform.isTV) {
+                    await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+                }
+
+                // Brightness control not available on TV
+                if (!Platform.isTV) {
+                    const { status } = await Brightness.requestPermissionsAsync();
+                    if (status === 'granted') {
+                        const cur = await Brightness.getBrightnessAsync();
+                        setBrightness(cur);
+                    }
+                }
+            } catch (e) {
+                console.warn('Setup error:', e);
             }
         };
         setup();
 
         return () => {
             // Unlock on exit
-            ScreenOrientation.unlockAsync();
-            Brightness.restoreSystemBrightnessAsync();
-            if (Platform.OS === 'android') {
-                NavigationBar.setVisibilityAsync('visible');
+            try {
+                if (!Platform.isTV) {
+                    ScreenOrientation.unlockAsync();
+                    Brightness.restoreSystemBrightnessAsync();
+                }
+                if (Platform.OS === 'android' && !Platform.isTV) {
+                    // Some TVs crash on nav bar manipulation
+                    NavigationBar.setVisibilityAsync('visible').catch(() => { });
+                }
+            } catch (e) {
+                console.warn('Cleanup error:', e);
             }
         };
     }, []);
 
     const currentChannel = channelList[currentIndex] || defaultChannels[0];
 
-    useEffect(() => {
-        if (Platform.isTV) {
-            tvEventHandler.current = new TVEventHandler();
-            tvEventHandler.current.enable(null, (cmp, evt) => {
-                if (evt && evt.eventType === 'up') {
-                    changeChannel('next');
-                } else if (evt && evt.eventType === 'down') {
-                    changeChannel('prev');
-                } else if (evt && evt.eventType === 'select') {
-                    // Show info for 3 seconds
-                    setShowInfo(true);
-                }
-            });
-        } else if (Platform.OS === 'web') {
-            // Web fallback
-            const handleKeyDown = (e) => {
-                if (e.key === 'ArrowUp') {
-                    changeChannel('next');
-                } else if (e.key === 'ArrowDown') {
-                    changeChannel('prev');
-                } else if (e.key === 'Enter') {
-                    setShowInfo(prev => !prev);
-                }
-            };
-            window.addEventListener('keydown', handleKeyDown);
-            return () => window.removeEventListener('keydown', handleKeyDown);
-        }
-
-        return () => {
-            if (tvEventHandler.current) {
-                tvEventHandler.current.disable();
-            }
-        };
-    }, []);
+    /* TVEventHandler removed to prevent crash on non-TV platforms */
 
     useEffect(() => {
         // Handle Immersive Mode (Android specific)
-        if (Platform.OS === 'android') {
+        if (Platform.OS === 'android' && !Platform.isTV) {
+            // TV usually handles its own bars or has none. Explicitly toggling might crash on some boxes.
             if (showInfo) {
-                NavigationBar.setVisibilityAsync('visible');
+                NavigationBar.setVisibilityAsync('visible').catch(() => { });
             } else {
-                NavigationBar.setVisibilityAsync('hidden');
-                NavigationBar.setBehaviorAsync('overlay-swipe');
+                NavigationBar.setVisibilityAsync('hidden').catch(() => { });
+                // Note: setBehaviorAsync is not supported with edge-to-edge enabled
+                // NavigationBar.setBehaviorAsync('overlay-swipe').catch(() => { });
             }
         }
 
@@ -217,7 +221,8 @@ export default function PlayerScreen({ route, navigation }) {
     }
 
     return (
-        <View style={styles.container} {...panResponder.panHandlers}>
+        <View style={styles.container}>
+            {/* Video Layer (Bottom) */}
             <Video
                 ref={videoRef}
                 style={styles.video}
@@ -228,18 +233,129 @@ export default function PlayerScreen({ route, navigation }) {
                 useNativeControls={false}
                 volume={volume}
                 isMuted={isMuted}
+                onError={(e) => console.warn('Video Error:', e)}
             />
 
+            {/* Invisible Event Capture Overlay (Always Active) */}
+            <TouchableOpacity
+                style={styles.eventCaptureOverlay}
+                activeOpacity={1}
+                focusable={true}
+                hasTVPreferredFocus={true}
+                onPress={() => {
+                    setShowInfo(prev => !prev);
+                }}
+            />
+
+            {/* 4-Directional Button Grid for D-Pad Control */}
+
+            {/* UP Button - Next Channel */}
+            <TouchableOpacity
+                style={[styles.invisibleButton, {
+                    top: 0,
+                    left: '25%',
+                    width: '50%',
+                    height: '25%'
+                }]}
+                activeOpacity={1}
+                focusable={true}
+                onFocus={() => {
+                    console.log('📺 UP BUTTON FOCUSED - Next Channel');
+                    changeChannel('next');
+                    setShowInfo(true);
+                }}
+                onPress={() => {
+                    changeChannel('next');
+                    setShowInfo(true);
+                }}
+            />
+
+            {/* DOWN Button - Previous Channel */}
+            <TouchableOpacity
+                style={[styles.invisibleButton, {
+                    bottom: 0,
+                    left: '25%',
+                    width: '50%',
+                    height: '25%'
+                }]}
+                activeOpacity={1}
+                focusable={true}
+                onFocus={() => {
+                    console.log('📺 DOWN BUTTON FOCUSED - Prev Channel');
+                    changeChannel('prev');
+                    setShowInfo(true);
+                }}
+                onPress={() => {
+                    changeChannel('prev');
+                    setShowInfo(true);
+                }}
+            />
+
+            {/* LEFT Button - Volume Down */}
+            <TouchableOpacity
+                style={[styles.invisibleButton, {
+                    left: 0,
+                    top: '25%',
+                    width: '25%',
+                    height: '50%'
+                }]}
+                activeOpacity={1}
+                focusable={true}
+                onFocus={() => {
+                    console.log('📺 LEFT BUTTON FOCUSED - Volume Down');
+                    const newVolume = Math.max(0, volume - 0.1);
+                    setVolume(newVolume);
+                    volumeRef.current = newVolume;
+                    setGestureFeedback({ visible: true, icon: '🔊', value: Math.round(newVolume * 100) });
+                    setTimeout(() => setGestureFeedback({ visible: false, icon: '', value: 0 }), 1000);
+                }}
+                onPress={() => {
+                    const newVolume = Math.max(0, volume - 0.1);
+                    setVolume(newVolume);
+                    volumeRef.current = newVolume;
+                    setGestureFeedback({ visible: true, icon: '🔊', value: Math.round(newVolume * 100) });
+                    setTimeout(() => setGestureFeedback({ visible: false, icon: '', value: 0 }), 1000);
+                }}
+            />
+
+            {/* RIGHT Button - Volume Up */}
+            <TouchableOpacity
+                style={[styles.invisibleButton, {
+                    right: 0,
+                    top: '25%',
+                    width: '25%',
+                    height: '50%'
+                }]}
+                activeOpacity={1}
+                focusable={true}
+                onFocus={() => {
+                    console.log('📺 RIGHT BUTTON FOCUSED - Volume Up');
+                    const newVolume = Math.min(1, volume + 0.1);
+                    setVolume(newVolume);
+                    volumeRef.current = newVolume;
+                    setGestureFeedback({ visible: true, icon: '🔊', value: Math.round(newVolume * 100) });
+                    setTimeout(() => setGestureFeedback({ visible: false, icon: '', value: 0 }), 1000);
+                }}
+                onPress={() => {
+                    const newVolume = Math.min(1, volume + 0.1);
+                    setVolume(newVolume);
+                    volumeRef.current = newVolume;
+                    setGestureFeedback({ visible: true, icon: '🔊', value: Math.round(newVolume * 100) });
+                    setTimeout(() => setGestureFeedback({ visible: false, icon: '', value: 0 }), 1000);
+                }}
+            />
+
+            {/* Info Overlay (Conditional) */}
             {showInfo && (
                 <>
                     {/* Back Button (Top Left) */}
                     {!Platform.isTV && (
-                        <TouchableOpacity
+                        <FocusableButton
                             style={[styles.backButton, { top: Math.max(20, insets.top + 10), left: Math.max(20, insets.left + 10) }]}
                             onPress={() => navigation.goBack()}
                         >
                             <Text style={styles.backButtonText}>← Back</Text>
-                        </TouchableOpacity>
+                        </FocusableButton>
                     )}
 
                     {/* Info Overlay */}
@@ -252,7 +368,7 @@ export default function PlayerScreen({ route, navigation }) {
                     </View>
 
                     {/* Mute Button (Bottom Right) */}
-                    <TouchableOpacity
+                    <FocusableButton
                         style={[styles.muteButton, {
                             bottom: Math.max(50, insets.bottom + 20),
                             right: Math.max(50, insets.right + 20)
@@ -260,7 +376,7 @@ export default function PlayerScreen({ route, navigation }) {
                         onPress={toggleMute}
                     >
                         <Text style={styles.muteIcon}>{isMuted ? '🔇' : '🔊'}</Text>
-                    </TouchableOpacity>
+                    </FocusableButton>
                 </>
             )}
 
@@ -285,6 +401,16 @@ const styles = StyleSheet.create({
     video: {
         width: '100%',
         height: '100%',
+    },
+    eventCaptureOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'transparent',
+        zIndex: 1,
+    },
+    invisibleButton: {
+        position: 'absolute',
+        backgroundColor: 'transparent',
+        zIndex: 2,
     },
     overlay: {
         position: 'absolute',
@@ -348,5 +474,17 @@ const styles = StyleSheet.create({
     muteIcon: {
         fontSize: 30,
         color: '#fff',
+    },
+    focusedItem: {
+        backgroundColor: 'rgba(255, 105, 180, 0.6)', // Pink tint
+        borderRadius: 8,
+        transform: [{ scale: 1.15 }],
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+        shadowColor: "#FF69B4",
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.8,
+        shadowRadius: 8,
+        elevation: 10,
     },
 });

@@ -10,15 +10,132 @@ import {
     TextInput,
     Alert,
     Image,
+    Animated, // Import Animated
+    Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMergedChannels } from '../api/iptv';
 import { saveChannels, loadChannels } from '../utils/storage';
 
+// Helper for TV Focus
+// Helper for TV Focus - Animated Approach
+const FocusableOpacity = ({ onPress, onLongPress, delayLongPress, style, children, activeOpacity, focusedStyle, ...props }) => {
+    const focusAnim = React.useRef(new Animated.Value(0)).current;
+
+    const onFocus = () => {
+        Animated.timing(focusAnim, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true, // Use native driver for transform
+            easing: Easing.out(Easing.quad),
+        }).start();
+    };
+
+    const onBlur = () => {
+        Animated.timing(focusAnim, {
+            toValue: 0,
+            duration: 150,
+            useNativeDriver: true,
+            easing: Easing.out(Easing.quad),
+        }).start();
+    };
+
+    const scale = focusAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.15]
+    });
+
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            onLongPress={onLongPress}
+            delayLongPress={delayLongPress}
+            onFocus={onFocus}
+            onBlur={onBlur}
+            activeOpacity={1}
+            {...props}
+        >
+            <Animated.View style={[
+                style,
+                {
+                    transform: [{ scale }],
+                    zIndex: focusAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [1, 999]
+                    }),
+                    // Create a border via a wrapper view or just let the child handle it?
+                    // Let's add a border width simulation or just rely on scale + overlay.
+                }
+            ]}>
+                {children}
+                {/* Animated Overlay for Color */}
+                <Animated.View style={{
+                    ...StyleSheet.absoluteFillObject,
+                    borderRadius: 8,
+                    borderWidth: 4,
+                    borderColor: '#FF69B4',
+                    backgroundColor: 'rgba(255, 105, 180, 0.4)',
+                    opacity: focusAnim, // Fade in the pink
+                }} />
+            </Animated.View>
+        </TouchableOpacity>
+    );
+};
+
+// Search Input that behaves like a button until clicked
+const SearchInputButton = ({ value, onChangeText, placeholder, onNextFocus }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const inputRef = React.useRef(null);
+
+    const handlePress = () => {
+        setIsEditing(true);
+        // Wait for render then focus
+        setTimeout(() => inputRef.current?.focus(), 100);
+    };
+
+    const handleSubmit = () => {
+        setIsEditing(false);
+        // Optional: Move focus down automatically after searching? 
+        // For now just exit edit mode. User can then nav down.
+    };
+
+    if (isEditing) {
+        return (
+            <TextInput
+                ref={inputRef}
+                style={[styles.searchInput, styles.searchInputActive]}
+                value={value}
+                onChangeText={onChangeText}
+                placeholder={placeholder}
+                placeholderTextColor="#999"
+                autoFocus={true}
+                blurOnSubmit={true}
+                onSubmitEditing={handleSubmit}
+                onBlur={() => setIsEditing(false)}
+            />
+        );
+    }
+
+    return (
+        <FocusableOpacity
+            style={styles.searchInput}
+            onPress={handlePress}
+            activeOpacity={1}
+            focusedStyle={styles.searchInputFocused}
+        >
+            <Text style={[styles.searchTextDisplay, !value && styles.placeholderText]}>
+                {value || placeholder}
+            </Text>
+            <Text style={styles.searchIcon}>🔍</Text>
+        </FocusableOpacity>
+    );
+};
+
 const SettingsScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(true);
     const [allChannels, setAllChannels] = useState([]);
+    const firstFilterRef = React.useRef(null); // Ref for navigating from Search -> Filter
 
     // Filter States
     const [searchQuery, setSearchQuery] = useState('');
@@ -172,15 +289,17 @@ const SettingsScreen = ({ navigation }) => {
     }, [selectedChannelsMap, loading]);
 
     // Renderers
-    const renderFilterItem = (item, selected, onSelect) => (
-        <TouchableOpacity
+    const renderFilterItem = (item, selected, onSelect, index) => (
+        <FocusableOpacity
+            ref={index === 0 ? firstFilterRef : null}
             style={[styles.filterChip, item === selected && styles.filterChipSelected]}
             onPress={() => onSelect(item)}
+            focusedStyle={styles.focusedItem}
         >
             <Text style={[styles.filterText, item === selected && styles.filterTextSelected]}>
                 {item}
             </Text>
-        </TouchableOpacity>
+        </FocusableOpacity>
     );
 
     const renderChannelItem = ({ item, index }, isAdd) => {
@@ -189,7 +308,7 @@ const SettingsScreen = ({ navigation }) => {
         // In "Selected" list, click handles move logic.
 
         return (
-            <TouchableOpacity
+            <FocusableOpacity
                 style={[
                     styles.channelItem,
                     isMoving && styles.channelItemMoving,
@@ -198,7 +317,10 @@ const SettingsScreen = ({ navigation }) => {
                 onPress={() => isAdd ? addChannel(item) : handleMoveSelect(item, index)}
                 onLongPress={() => !isAdd && removeChannel(item.id)}
                 delayLongPress={600}
+                onLongPress={() => !isAdd && removeChannel(item.id)}
+                delayLongPress={600}
                 activeOpacity={0.7}
+                focusedStyle={styles.focusedItem}
             >
                 {item.logo ? (
                     <Image source={{ uri: item.logo }} style={styles.channelLogo} resizeMode="contain" />
@@ -223,7 +345,7 @@ const SettingsScreen = ({ navigation }) => {
                         <Text style={styles.removeIcon}>🗑️</Text>
                     </TouchableOpacity>
                 )}
-            </TouchableOpacity>
+            </FocusableOpacity>
         );
     };
 
@@ -250,12 +372,12 @@ const SettingsScreen = ({ navigation }) => {
 
             {/* Filters Section */}
             <View style={styles.filtersContainer}>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search channels..."
-                    placeholderTextColor="#666"
+                {/* Search Button / Input Wrapper */}
+                <SearchInputButton
                     value={searchQuery}
                     onChangeText={setSearchQuery}
+                    placeholder="Search channels..."
+                    onNextFocus={() => firstFilterRef.current?.focus()}
                 />
 
                 <View style={styles.horizontalFilter}>
@@ -263,7 +385,7 @@ const SettingsScreen = ({ navigation }) => {
                     <FlatList
                         horizontal
                         data={countries}
-                        renderItem={({ item }) => renderFilterItem(item, selectedCountry, setSelectedCountry)}
+                        renderItem={({ item, index }) => renderFilterItem(item, selectedCountry, setSelectedCountry, index)}
                         keyExtractor={item => `country-${item}`}
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={{ paddingRight: 20 }}
@@ -354,10 +476,35 @@ const styles = StyleSheet.create({
     },
     searchInput: {
         backgroundColor: '#2C2C2C',
-        color: '#fff',
         padding: 10,
         borderRadius: 8,
         marginBottom: 12,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    searchInputFocused: {
+        backgroundColor: '#FF69B4', // Hot Pink
+        borderColor: '#FFF',
+        borderWidth: 3,
+        transform: [{ scale: 1.05 }],
+    },
+    searchInputActive: {
+        borderColor: '#00BFFF',
+        borderWidth: 2,
+        color: '#fff',
+        fontSize: 16,
+    },
+    searchTextDisplay: {
+        color: '#fff',
+        fontSize: 16,
+    },
+    placeholderText: {
+        color: '#666',
+    },
+    searchIcon: {
         fontSize: 16,
     },
     horizontalFilter: {
@@ -466,6 +613,18 @@ const styles = StyleSheet.create({
     },
     removeIcon: {
         fontSize: 18,
+    },
+    focusedItem: {
+        backgroundColor: '#FF69B4', // Hot Pink
+        transform: [{ scale: 1.05 }],
+        borderWidth: 3,
+        borderColor: '#FFFFFF', // White border
+        shadowColor: "#FF69B4",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 5,
+        elevation: 10,
+        zIndex: 999,
     },
 });
 

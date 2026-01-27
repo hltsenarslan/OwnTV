@@ -11,6 +11,23 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { loadChannels, saveChannels } from '../utils/storage';
 
+// Helper for TV Focus
+const FocusableOpacity = ({ onPress, style, children, activeOpacity, focusedStyle, disabled }) => {
+    const [focused, setFocused] = useState(false);
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            style={[style, focused && (focusedStyle || styles.focusedItem)]}
+            activeOpacity={activeOpacity}
+            disabled={disabled}
+        >
+            {children}
+        </TouchableOpacity>
+    );
+};
+
 const ReorderScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [channels, setChannels] = useState([]);
@@ -58,7 +75,7 @@ const ReorderScreen = ({ navigation }) => {
     const renderItem = ({ item, index }) => {
         const isSelected = selectedIdx === index;
         return (
-            <TouchableOpacity
+            <FocusableOpacity
                 style={[styles.itemContainer, isSelected && styles.itemSelected]}
                 onPress={() => setSelectedIdx(index)}
                 activeOpacity={0.8}
@@ -66,22 +83,22 @@ const ReorderScreen = ({ navigation }) => {
                 <Text style={styles.index}>{index + 1}.</Text>
                 <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
                 <View style={styles.controls}>
-                    <TouchableOpacity
+                    <FocusableOpacity
                         style={[styles.controlBtn, index === 0 && styles.disabledBtn]}
                         onPress={() => moveUp(index)}
                         disabled={index === 0}
                     >
                         <Text style={styles.controlText}>▲</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
+                    </FocusableOpacity>
+                    <FocusableOpacity
                         style={[styles.controlBtn, index === channels.length - 1 && styles.disabledBtn]}
                         onPress={() => moveDown(index)}
                         disabled={index === channels.length - 1}
                     >
                         <Text style={styles.controlText}>▼</Text>
-                    </TouchableOpacity>
+                    </FocusableOpacity>
                 </View>
-            </TouchableOpacity>
+            </FocusableOpacity>
         );
     };
 
@@ -185,6 +202,14 @@ const styles = StyleSheet.create({
     controlText: {
         color: '#fff',
         fontSize: 16,
+    },
+    focusedItem: {
+        backgroundColor: '#FF69B4', // Hot Pink
+        transform: [{ scale: 1.05 }],
+        borderWidth: 3,
+        borderColor: '#FFFFFF',
+        elevation: 5,
+        zIndex: 999,
     },
 });
 
