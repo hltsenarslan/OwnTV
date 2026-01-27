@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ImageBackground, Dimensions, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ImageBackground, Dimensions, Alert, Platform, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import defaultChannels from '../assets/channels.json';
 import { loadChannels } from '../utils/storage';
@@ -56,12 +56,23 @@ export default function HomeScreen({ navigation }) {
         return () => clearInterval(interval);
     }, []);
 
-    const isTV = Platform.isTV;
-    const numColumns = isTV ? 4 : 2;
-    const gap = isTV ? 20 : 10;
-    const containerPadding = isTV ? 80 : 20; // (padding * 2)
+    const { width: screenWidth } = useWindowDimensions();
 
-    const screenWidth = Dimensions.get('window').width;
+    // Dynamic Responsive Layout Calculation
+    const getColumnCount = (width) => {
+        if (width < 600) return 2;      // Mobile phones
+        if (width < 900) return 3;      // Small tablets / Foldables
+        if (width < 1200) return 4;     // Tablets / Small TV
+        if (width < 1500) return 5;     // 1080p TV
+        return 6;                       // Large TV / 4K
+    };
+
+    const numColumns = getColumnCount(screenWidth);
+    const isSmallScreen = screenWidth < 600;
+
+    const gap = isSmallScreen ? 10 : 20;
+    const containerPadding = isSmallScreen ? 20 : 60; // (padding * 2)
+
     const availableWidth = screenWidth - containerPadding;
     const itemWidth = (availableWidth / numColumns) - gap;
 
@@ -102,7 +113,8 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
     background: { flex: 1, width: '100%', height: '100%' },
     overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' },
-    container: { flex: 1, padding: Platform.isTV ? 40 : 10, justifyContent: 'center' },
+    overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)' },
+    container: { flex: 1, padding: 30, justifyContent: 'center' },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
     title: { fontSize: 36, color: '#fff', fontWeight: 'bold', marginLeft: 10 },
     headerButtons: { flexDirection: 'row' },
