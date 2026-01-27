@@ -3,6 +3,7 @@ import { View, StyleSheet, Text, Dimensions, TVEventHandler, Platform, Touchable
 import { Video, ResizeMode } from 'expo-av';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as Brightness from 'expo-brightness';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import defaultChannels from '../assets/channels.json';
 import { loadChannels } from '../utils/storage';
@@ -59,6 +60,9 @@ export default function PlayerScreen({ route, navigation }) {
             // Unlock on exit
             ScreenOrientation.unlockAsync();
             Brightness.restoreSystemBrightnessAsync();
+            if (Platform.OS === 'android') {
+                NavigationBar.setVisibilityAsync('visible');
+            }
         };
     }, []);
 
@@ -100,6 +104,16 @@ export default function PlayerScreen({ route, navigation }) {
     }, []);
 
     useEffect(() => {
+        // Handle Immersive Mode (Android specific)
+        if (Platform.OS === 'android') {
+            if (showInfo) {
+                NavigationBar.setVisibilityAsync('visible');
+            } else {
+                NavigationBar.setVisibilityAsync('hidden');
+                NavigationBar.setBehaviorAsync('overlay-swipe');
+            }
+        }
+
         // Auto-hide info after 3 seconds if it's visible, unless swiping
         if (showInfo && !isSwiping.current) {
             const timer = setTimeout(() => setShowInfo(false), 3000);
