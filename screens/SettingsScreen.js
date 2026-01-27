@@ -237,7 +237,12 @@ const SettingsScreen = ({ navigation }) => {
     }
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+        <View style={[styles.container, {
+            paddingTop: insets.top,
+            paddingBottom: insets.bottom,
+            paddingLeft: insets.left,
+            paddingRight: insets.right
+        }]}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>Channel Store</Text>

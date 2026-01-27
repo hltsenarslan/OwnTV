@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ImageBackground, Dimensions, Alert, Platform, useWindowDimensions } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import defaultChannels from '../assets/channels.json';
 import { loadChannels } from '../utils/storage';
 
@@ -35,6 +36,7 @@ const FocusableCard = ({ item, onPress }) => {
 };
 
 export default function HomeScreen({ navigation }) {
+    const insets = useSafeAreaInsets();
     const [bgImage, setBgImage] = useState(BG_IMAGES[0]);
     const [channels, setChannels] = useState([]);
 
@@ -71,7 +73,10 @@ export default function HomeScreen({ navigation }) {
     const isSmallScreen = screenWidth < 600;
 
     const gap = isSmallScreen ? 10 : 20;
-    const containerPadding = isSmallScreen ? 20 : 60; // (padding * 2)
+    // Add horizontal insets to container padding deduction
+    const horizontalInsets = insets.left + insets.right;
+    const basePadding = isSmallScreen ? 20 : 60;
+    const containerPadding = basePadding + horizontalInsets;
 
     const availableWidth = screenWidth - containerPadding;
     const itemWidth = (availableWidth / numColumns) - gap;
@@ -88,7 +93,12 @@ export default function HomeScreen({ navigation }) {
     return (
         <ImageBackground source={{ uri: bgImage }} style={styles.background}>
             <View style={styles.overlay} />
-            <View style={styles.container}>
+            <View style={[styles.container, {
+                paddingTop: insets.top + 20,
+                paddingBottom: insets.bottom + 20,
+                paddingLeft: insets.left + (isSmallScreen ? 15 : 30),
+                paddingRight: insets.right + (isSmallScreen ? 15 : 30)
+            }]}>
                 <View style={styles.header}>
                     <Text style={styles.title}>Canlı TV</Text>
                     <View style={styles.headerButtons}>

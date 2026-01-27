@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, Dimensions, TVEventHandler, Platform } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import defaultChannels from '../assets/channels.json';
 import { loadChannels } from '../utils/storage';
 
@@ -12,6 +14,7 @@ export default function PlayerScreen({ route, navigation }) {
     const [showInfo, setShowInfo] = useState(true);
     const videoRef = useRef(null);
     const tvEventHandler = useRef(null);
+    const insets = useSafeAreaInsets();
 
     const [channelList, setChannelList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +26,17 @@ export default function PlayerScreen({ route, navigation }) {
             setLoading(false);
         };
         load();
+
+        // Lock to landscape
+        const lockOrientation = async () => {
+            await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        };
+        lockOrientation();
+
+        return () => {
+            // Unlock on exit
+            ScreenOrientation.unlockAsync();
+        };
     }, []);
 
     const currentChannel = channelList[currentIndex] || defaultChannels[0];
@@ -99,7 +113,10 @@ export default function PlayerScreen({ route, navigation }) {
             />
 
             {showInfo && (
-                <View style={styles.overlay}>
+                <View style={[styles.overlay, {
+                    bottom: Math.max(50, insets.bottom + 20),
+                    left: Math.max(50, insets.left + 20)
+                }]}>
                     <Text style={styles.channelNumber}>{currentIndex + 1}</Text>
                     <Text style={styles.channelName}>{currentChannel.name}</Text>
                 </View>
