@@ -27,6 +27,7 @@ const SettingsScreen = ({ navigation }) => {
 
     // Selection State
     const [selectedChannelsMap, setSelectedChannelsMap] = useState(new Map()); // id -> channel
+    const [movingChannel, setMovingChannel] = useState(null);
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -126,24 +127,35 @@ const SettingsScreen = ({ navigation }) => {
         });
     };
 
-    const moveChannelUp = (index) => {
-        if (index === 0) return;
-        const list = Array.from(selectedChannelsMap.values());
-        [list[index - 1], list[index]] = [list[index], list[index - 1]];
+    const handleMoveSelect = (channel, index) => {
+        if (!movingChannel) {
+            // Pick up
+            setMovingChannel(channel);
+        } else {
+            // Drop / Place here
+            if (movingChannel.id === channel.id) {
+                // Cancel if clicked same item
+                setMovingChannel(null);
+                return;
+            }
 
-        const newMap = new Map();
-        list.forEach(c => newMap.set(c.id, c));
-        setSelectedChannelsMap(newMap);
-    };
+            // Move logic: Insert movingChannel at new index
+            const list = Array.from(selectedChannelsMap.values());
+            const oldIndex = list.findIndex(c => c.id === movingChannel.id);
+            const newIndex = index;
 
-    const moveChannelDown = (index) => {
-        const list = Array.from(selectedChannelsMap.values());
-        if (index === list.length - 1) return;
-        [list[index + 1], list[index]] = [list[index], list[index + 1]];
+            if (oldIndex > -1) {
+                // Remove from old pos
+                list.splice(oldIndex, 1);
+                // Insert at new pos
+                list.splice(newIndex, 0, movingChannel);
 
-        const newMap = new Map();
-        list.forEach(c => newMap.set(c.id, c));
-        setSelectedChannelsMap(newMap);
+                const newMap = new Map();
+                list.forEach(c => newMap.set(c.id, c));
+                setSelectedChannelsMap(newMap);
+            }
+            setMovingChannel(null);
+        }
     };
 
     // Auto-save effect
@@ -171,44 +183,49 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
     );
 
-    const renderChannelItem = ({ item, index }, isAdd) => (
-        <TouchableOpacity
-            style={styles.channelItem}
-            onPress={() => isAdd ? addChannel(item) : removeChannel(item.id)}
-        >
-            {item.logo ? (
-                <Image source={{ uri: item.logo }} style={styles.channelLogo} resizeMode="contain" />
-            ) : (
-                <View style={styles.placeholderLogo} />
-            )}
+    const renderChannelItem = ({ item, index }, isAdd) => {
+        const isMoving = movingChannel && movingChannel.id === item.id;
+        // In "Available" list, click adds.
+        // In "Selected" list, click handles move logic.
 
-            <View style={styles.channelInfo}>
-                <Text style={styles.channelName} numberOfLines={1}>{item.name}</Text>
-                <Text style={styles.channelMeta}>{item.country} | {item.category}</Text>
-            </View>
+        return (
+            <TouchableOpacity
+                style={[
+                    styles.channelItem,
+                    isMoving && styles.channelItemMoving,
+                    (movingChannel && !isAdd && !isMoving) && styles.channelItemTarget // visual hint
+                ]}
+                onPress={() => isAdd ? addChannel(item) : handleMoveSelect(item, index)}
+                onLongPress={() => !isAdd && removeChannel(item.id)}
+                delayLongPress={600}
+                activeOpacity={0.7}
+            >
+                {item.logo ? (
+                    <Image source={{ uri: item.logo }} style={styles.channelLogo} resizeMode="contain" />
+                ) : (
+                    <View style={styles.placeholderLogo} />
+                )}
 
-            {!isAdd && (
-                <View style={styles.reorderControls}>
-                    <TouchableOpacity
-                        style={styles.reorderBtn}
-                        onPress={(e) => { e.stopPropagation(); moveChannelUp(index); }}
-                    >
-                        <Text style={styles.reorderText}>▲</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.reorderBtn}
-                        onPress={(e) => { e.stopPropagation(); moveChannelDown(index); }}
-                    >
-                        <Text style={styles.reorderText}>▼</Text>
-                    </TouchableOpacity>
+                <View style={styles.channelInfo}>
+                    <Text style={styles.channelName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.channelMeta}>
+                        {isAdd ? `${item.country} | ${item.category}` : (isMoving ? 'Moving... Select new position' : 'Tap to Move • Long Press to Delete')}
+                    </Text>
                 </View>
-            )}
 
-            <Text style={[styles.actionIcon, { color: isAdd ? '#4CAF50' : '#F44336' }]}>
-                {isAdd ? '+' : '−'}
-            </Text>
-        </TouchableOpacity>
-    );
+                {isAdd ? (
+                    <Text style={[styles.actionIcon, { color: '#4CAF50' }]}>+</Text>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.removeBtn}
+                        onPress={(e) => { e.stopPropagation(); removeChannel(item.id); }}
+                    >
+                        <Text style={styles.removeIcon}>🗑️</Text>
+                    </TouchableOpacity>
+                )}
+            </TouchableOpacity>
+        );
+    };
 
     if (loading) {
         return (
@@ -430,15 +447,19 @@ const styles = StyleSheet.create({
         backgroundColor: '#333',
         borderRadius: 4,
     },
-    reorderControls: {
-        flexDirection: 'row',
-        marginRight: 8,
+    channelItemMoving: {
+        borderColor: '#00BFFF',
+        borderWidth: 2,
+        backgroundColor: '#333',
     },
-    reorderBtn: {
-        paddingHorizontal: 8,
+    channelItemTarget: {
+        opacity: 0.8,
     },
-    reorderText: {
-        color: '#888',
+    removeBtn: {
+        padding: 8,
+        marginLeft: 8,
+    },
+    removeIcon: {
         fontSize: 18,
     },
 });
