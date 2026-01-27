@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1",
+    "name": "TRT 1",
+    "url": "https://tv-trt1.medya.trt.com.tr/master.m3u8",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/TRT_1_logo.svg/1024px-TRT_1_logo.svg.png"
+  },
+  {
+    "id": "2",
+    "name": "TRT Haber",
+    "url": "https://tv-trthaber.medya.trt.com.tr/master.m3u8",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/TRT_Haber_logo.svg/1024px-TRT_Haber_logo.svg.png"
+  },
+  {
+    "id": "3",
+    "name": "TRT Belgesel",
+    "url": "https://tv-trtbelgesel.medya.trt.com.tr/master.m3u8",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/36/TRT_Belgesel_logo.svg/1024px-TRT_Belgesel_logo.svg.png"
+  },
+  {
+    "id": "4",
+    "name": "TRT Müzik",
+    "url": "https://tv-trtmuzik.medya.trt.com.tr/master.m3u8",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/61/TRT_M%C3%BCzik_logo.svg/1024px-TRT_M%C3%BCzik_logo.svg.png" 
+  },
+  {
+    "id": "5",
+    "name": "TRT Spor",
+    "url": "https://tv-trtspor.medya.trt.com.tr/master.m3u8",
+    "logo": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/TRT_Spor_logo.svg/1024px-TRT_Spor_logo.svg.png"
+  }
+]
