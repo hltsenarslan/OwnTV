@@ -28,7 +28,17 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "intentFilters": [
+        {
+          "action": "MAIN",
+          "data": {},
+          "category": [
+            "LEANBACK_LAUNCHER",
+            "LAUNCHER"
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
