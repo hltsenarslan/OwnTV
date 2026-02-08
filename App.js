@@ -5,6 +5,7 @@ import HomeScreen from './screens/HomeScreen';
 import PlayerScreen from './screens/PlayerScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ReorderScreen from './screens/ReorderScreen';
+import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as Updates from 'expo-updates';
 
@@ -23,6 +24,8 @@ const linking = {
 };
 
 export default function App() {
+  const [isCheckingUpdates, setIsCheckingUpdates] = React.useState(true);
+
   React.useEffect(() => {
     async function onFetchUpdateAsync() {
       try {
@@ -30,16 +33,32 @@ export default function App() {
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
           await Updates.reloadAsync();
+          return; // Reloading, so we don't finish
         }
       } catch (error) {
         console.log(`Error fetching latest Expo update: ${error}`);
+      } finally {
+        setIsCheckingUpdates(false);
       }
     }
 
-    if (!__DEV__) {
+    if (!__DEV__ && Updates.isEnabled) {
       onFetchUpdateAsync();
+    } else {
+      setIsCheckingUpdates(false);
     }
   }, []);
+
+  if (isCheckingUpdates) {
+    return (
+      <View style={appStyles.splash}>
+        <StatusBar hidden />
+        <Text style={appStyles.splashTitle}>OwnTV</Text>
+        <ActivityIndicator size="large" color="#00BFFF" />
+        <Text style={appStyles.splashSubtitle}>Güncellemeler denetleniyor...</Text>
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer linking={linking}>
@@ -53,3 +72,24 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+const appStyles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashTitle: {
+    color: '#fff',
+    fontSize: 48,
+    fontWeight: 'bold',
+    marginBottom: 40,
+    letterSpacing: 2,
+  },
+  splashSubtitle: {
+    color: '#666',
+    fontSize: 16,
+    marginTop: 20,
+  },
+});
