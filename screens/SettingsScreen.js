@@ -667,15 +667,15 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     focusedItem: {
-        backgroundColor: '#FF69B4', // Hot Pink
+        backgroundColor: '#007AFF', // Vibrant Blue
         transform: [{ scale: 1.05 }],
         borderWidth: 3,
-        borderColor: '#FFFFFF', // White border
-        shadowColor: "#FF69B4",
+        borderColor: '#00BFFF', // Sky Blue border
+        shadowColor: "#00BFFF",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.8,
-        shadowRadius: 5,
-        elevation: 10,
+        shadowRadius: 10,
+        elevation: 15,
         zIndex: 999,
     },
     versionText: {

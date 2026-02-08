@@ -173,20 +173,20 @@ const styles = StyleSheet.create({
         borderColor: 'transparent',
     },
     cardFocused: {
-        backgroundColor: 'rgba(255, 105, 180, 0.8)', // Pink overlay
-        transform: [{ scale: 1.1 }],
-        borderColor: '#FFFFFF',
+        backgroundColor: 'rgba(0, 122, 255, 0.4)', // Soft blue overlay
+        transform: [{ scale: 1.05 }],
+        borderColor: '#00BFFF', // DeepSkyBlue
         borderWidth: 3,
-        shadowColor: "#FF69B4",
+        shadowColor: "#00BFFF",
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 10,
-        elevation: 10,
+        shadowOpacity: 0.8,
+        shadowRadius: 15,
+        elevation: 15,
     },
     buttonFocused: {
-        backgroundColor: '#FF69B4',
+        backgroundColor: '#007AFF', // Standard Blue
         borderColor: '#FFF',
-        borderWidth: 3,
+        borderWidth: 2,
         transform: [{ scale: 1.1 }],
     },
     logo: { width: '60%', height: '60%', marginBottom: 15 },
@@ -224,12 +224,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
     },
     ctaButtonFocused: {
-        backgroundColor: '#FF1493', // Deep Pink
+        backgroundColor: '#00BFFF', // Deep Pink
         transform: [{ scale: 1.1 }],
         borderWidth: 3,
         borderColor: '#FFFFFF',
-        shadowColor: "#FF69B4",
-        shadowOpacity: 0.5,
-        elevation: 10,
+        shadowColor: "#00BFFF",
+        shadowOpacity: 0.8,
+        elevation: 15,
     },
 });

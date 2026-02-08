@@ -485,15 +485,15 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     focusedItem: {
-        backgroundColor: 'rgba(255, 105, 180, 0.6)', // Pink tint
+        backgroundColor: 'rgba(0, 191, 255, 0.4)', // Blue tint
         borderRadius: 8,
         transform: [{ scale: 1.15 }],
         borderWidth: 3,
-        borderColor: '#FFFFFF',
-        shadowColor: "#FF69B4",
+        borderColor: '#00BFFF',
+        shadowColor: "#00BFFF",
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8,
-        shadowRadius: 8,
-        elevation: 10,
+        shadowOpacity: 0.9,
+        shadowRadius: 12,
+        elevation: 20,
     },
 });
