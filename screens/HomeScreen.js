@@ -96,7 +96,7 @@ export default function HomeScreen({ navigation }) {
     const itemWidth = (availableWidth / numColumns) - gap;
 
     const renderItem = ({ item, index }) => (
-        <View style={{ width: itemWidth, margin: gap / 2 }}>
+        <View style={{ width: itemWidth, margin: gap / 2, overflow: 'visible' }}>
             <FocusableCard
                 item={item}
                 onPress={() => navigation.navigate('Player', { channelIndex: index })}
@@ -147,6 +147,9 @@ export default function HomeScreen({ navigation }) {
                         contentContainerStyle={styles.grid}
                     />
                 )}
+            </View>
+            <View style={[styles.versionBadge, { bottom: insets.bottom + 10, right: insets.right + 20 }]}>
+                <Text style={styles.versionText}>v1.1.0</Text>
             </View>
         </ImageBackground>
     );
@@ -231,5 +234,17 @@ const styles = StyleSheet.create({
         shadowColor: "#00BFFF",
         shadowOpacity: 0.8,
         elevation: 15,
+    },
+    versionBadge: {
+        position: 'absolute',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    versionText: {
+        color: 'rgba(255,255,255,0.5)',
+        fontSize: 12,
+        fontWeight: '600',
     },
 });
