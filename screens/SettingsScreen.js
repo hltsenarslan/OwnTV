@@ -280,6 +280,16 @@ const SettingsScreen = ({ navigation }) => {
 
     // Update Check Logic
     const checkUpdate = async () => {
+        if (__DEV__) {
+            Alert.alert('Bilgi', 'Güncelleme kontrolü geliştirme modunda (Development) çalışmaz.');
+            return;
+        }
+
+        if (!Updates.isEnabled) {
+            Alert.alert('Bilgi', 'Güncelleme servisi şu an aktif değil.');
+            return;
+        }
+
         try {
             const update = await Updates.checkForUpdateAsync();
             if (update.isAvailable) {
@@ -291,8 +301,12 @@ const SettingsScreen = ({ navigation }) => {
                         {
                             text: 'Güncelle',
                             onPress: async () => {
-                                await Updates.fetchUpdateAsync();
-                                await Updates.reloadAsync();
+                                try {
+                                    await Updates.fetchUpdateAsync();
+                                    await Updates.reloadAsync();
+                                } catch (fetchErr) {
+                                    Alert.alert('Hata', 'Güncelleme indirilemedi: ' + fetchErr.message);
+                                }
                             }
                         }
                     ]
@@ -301,8 +315,8 @@ const SettingsScreen = ({ navigation }) => {
                 Alert.alert('Güncel', 'Uygulamanız en son sürümde.');
             }
         } catch (e) {
-            Alert.alert('Hata', 'Güncelleme kontrolü sırasında bir hata oluştu.');
-            console.error(e);
+            Alert.alert('Hata', 'Güncelleme kontrolü yapılamadı. İnternet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.');
+            console.error('Update Check Error:', e);
         }
     };
 
