@@ -6,10 +6,29 @@ import PlayerScreen from './screens/PlayerScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import ReorderScreen from './screens/ReorderScreen';
 import { StatusBar } from 'expo-status-bar';
+import * as Updates from 'expo-updates';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
+  React.useEffect(() => {
+    async function onFetchUpdateAsync() {
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch (error) {
+        console.log(`Error fetching latest Expo update: ${error}`);
+      }
+    }
+
+    if (!__DEV__) {
+      onFetchUpdateAsync();
+    }
+  }, []);
+
   return (
     <NavigationContainer>
       <StatusBar hidden />

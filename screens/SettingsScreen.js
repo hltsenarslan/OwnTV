@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMergedChannels } from '../api/iptv';
 import { saveChannels, loadChannels } from '../utils/storage';
+import * as Updates from 'expo-updates';
 
 // Helper for TV Focus
 // Helper for TV Focus - Animated Approach
@@ -275,6 +276,34 @@ const SettingsScreen = ({ navigation }) => {
         }
     };
 
+    // Update Check Logic
+    const checkUpdate = async () => {
+        try {
+            const update = await Updates.checkForUpdateAsync();
+            if (update.isAvailable) {
+                Alert.alert(
+                    'Yeni Güncelleme',
+                    'Uygulamanın yeni bir versiyonu bulundu. Şimdi indirip yüklensin mi?',
+                    [
+                        { text: 'Vazgeç', style: 'cancel' },
+                        {
+                            text: 'Güncelle',
+                            onPress: async () => {
+                                await Updates.fetchUpdateAsync();
+                                await Updates.reloadAsync();
+                            }
+                        }
+                    ]
+                );
+            } else {
+                Alert.alert('Güncel', 'Uygulamanız en son sürümde.');
+            }
+        } catch (e) {
+            Alert.alert('Hata', 'Güncelleme kontrolü sırasında bir hata oluştu.');
+            console.error(e);
+        }
+    };
+
     // Auto-save effect
     useEffect(() => {
         if (loading) return;
@@ -367,7 +396,17 @@ const SettingsScreen = ({ navigation }) => {
         }]}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Channel Store</Text>
+                <View>
+                    <Text style={styles.title}>Channel Store</Text>
+                    <Text style={styles.versionText}>v{Updates.runtimeVersion || '1.0.0'}</Text>
+                </View>
+                <FocusableOpacity
+                    style={styles.updateButton}
+                    onPress={checkUpdate}
+                    focusedStyle={styles.focusedItem}
+                >
+                    <Text style={styles.updateButtonText}>Güncellemeleri Denetle</Text>
+                </FocusableOpacity>
             </View>
 
             {/* Filters Section */}
@@ -625,6 +664,24 @@ const styles = StyleSheet.create({
         shadowRadius: 5,
         elevation: 10,
         zIndex: 999,
+    },
+    versionText: {
+        color: '#666',
+        fontSize: 12,
+        marginTop: 2,
+    },
+    updateButton: {
+        backgroundColor: '#333',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#444',
+    },
+    updateButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
 });
 
