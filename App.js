@@ -10,6 +10,18 @@ import * as Updates from 'expo-updates';
 
 const Stack = createNativeStackNavigator();
 
+const linking = {
+  prefixes: ['owntv://'],
+  config: {
+    screens: {
+      Home: 'home',
+      Player: 'player',
+      Settings: 'settings',
+      Reorder: 'reorder',
+    },
+  },
+};
+
 export default function App() {
   React.useEffect(() => {
     async function onFetchUpdateAsync() {
@@ -30,7 +42,7 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <StatusBar hidden />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home" component={HomeScreen} />

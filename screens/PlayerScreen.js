@@ -27,8 +27,8 @@ const FocusableButton = ({ onPress, style, children, focusStyle }) => {
 };
 
 export default function PlayerScreen({ route, navigation }) {
-    const { channelIndex: initialIndex } = route.params;
-    const [currentIndex, setCurrentIndex] = useState(initialIndex);
+    const { channelIndex: initialIndex, id: targetId } = route.params || {};
+    const [currentIndex, setCurrentIndex] = useState(initialIndex || 0);
     const [showInfo, setShowInfo] = useState(true);
     const videoRef = useRef(null);
     const tvEventHandler = useRef(null);
@@ -57,7 +57,16 @@ export default function PlayerScreen({ route, navigation }) {
 
         const load = async () => {
             const saved = await loadChannels();
-            setChannelList(saved && saved.length > 0 ? saved : defaultChannels);
+            const list = saved && saved.length > 0 ? saved : defaultChannels;
+            setChannelList(list);
+
+            if (targetId) {
+                const foundIndex = list.findIndex(c => c.id === targetId);
+                if (foundIndex !== -1) {
+                    setCurrentIndex(foundIndex);
+                }
+            }
+
             setLoading(false);
         };
         load();

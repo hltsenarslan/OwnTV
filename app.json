@@ -2,7 +2,7 @@
   "expo": {
     "name": "OwnTV",
     "slug": "OwnTV",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -10,6 +10,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "scheme": "owntv",
     "updates": {
       "url": "https://u.expo.dev/62b1473d-d5a8-4193-9c36-fe99b20e769e"
     },
@@ -36,6 +37,16 @@
           "category": [
             "LEANBACK_LAUNCHER",
             "LAUNCHER"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "owntv"
+          },
+          "category": [
+            "DEFAULT",
+            "BROWSABLE"
           ]
         }
       ]

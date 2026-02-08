@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["AndroidTvModule"]
+  },
+  "android": {
+    "modules": ["com.owntv.androidtv.AndroidTvModule"]
+  }
+}

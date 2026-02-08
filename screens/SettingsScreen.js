@@ -17,6 +17,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMergedChannels } from '../api/iptv';
 import { saveChannels, loadChannels } from '../utils/storage';
 import * as Updates from 'expo-updates';
+import AndroidTv from '../modules/android-tv';
+import { Platform } from 'react-native';
 
 // Helper for TV Focus
 // Helper for TV Focus - Animated Approach
@@ -309,7 +311,18 @@ const SettingsScreen = ({ navigation }) => {
         if (loading) return;
         const save = async () => {
             try {
-                await saveChannels(Array.from(selectedChannelsMap.values()));
+                const list = Array.from(selectedChannelsMap.values());
+                await saveChannels(list);
+
+                // Sync with Android TV Home Screen
+                if (Platform.OS === 'android') {
+                    const syncList = list.slice(0, 20).map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        logo: c.logo || ''
+                    }));
+                    await AndroidTv.syncChannels(syncList).catch(e => console.error('TV Sync Error:', e));
+                }
             } catch (error) {
                 console.error('Auto-save error:', error);
             }
