@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Alert, Platform, useWindowDimensions, ToastAndroid, TVEventHandler } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Alert, Platform, useWindowDimensions, ToastAndroid, TVEventHandler, Animated, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMergedChannels } from '../api/iptv';
 import { saveChannels, loadChannels } from '../utils/storage';
 import * as Updates from 'expo-updates';
 import AndroidTv from '../modules/android-tv';
-import { Platform } from 'react-native';
 
 // Helper for TV Focus
 // Helper for TV Focus - Animated Approach
