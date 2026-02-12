@@ -137,6 +137,8 @@ const SettingsScreen = ({ navigation }) => {
     const [movingChannel, setMovingChannel] = useState(null);
     const [saving, setSaving] = useState(false);
     const [focusedChannel, setFocusedChannel] = useState(null); // Track which channel is focused
+    const [lastAddedIndex, setLastAddedIndex] = useState(-1); // Track last added channel index
+    const channelRefs = React.useRef({}); // Store refs to channel items
 
     useEffect(() => {
         loadData();
@@ -170,6 +172,20 @@ const SettingsScreen = ({ navigation }) => {
             }
         };
     }, [focusedChannel, selectedChannelsMap]);
+
+    // Focus next item after adding a channel
+    useEffect(() => {
+        if (lastAddedIndex >= 0 && channelRefs.current[lastAddedIndex + 1]) {
+            // Small delay to let the UI update
+            setTimeout(() => {
+                const nextRef = channelRefs.current[lastAddedIndex + 1];
+                if (nextRef && nextRef.focus) {
+                    nextRef.focus();
+                }
+                setLastAddedIndex(-1); // Reset
+            }, 100);
+        }
+    }, [lastAddedIndex]);
 
     const loadData = async () => {
         setLoading(true);
@@ -248,12 +264,15 @@ const SettingsScreen = ({ navigation }) => {
     }, [selectedChannelsMap]);
 
     // Actions
-    const addChannel = (channel) => {
+    const addChannel = (channel, index) => {
         setSelectedChannelsMap(prev => {
             const newMap = new Map(prev);
             newMap.set(channel.id, channel);
             return newMap;
         });
+
+        // Set the index so we can focus the next item
+        setLastAddedIndex(index);
     };
 
     const removeChannel = (channelId) => {
@@ -382,12 +401,13 @@ const SettingsScreen = ({ navigation }) => {
 
         return (
             <FocusableOpacity
+                ref={isAdd ? (ref) => { channelRefs.current[index] = ref; } : null}
                 style={[
                     styles.channelItem,
                     isMoving && styles.channelItemMoving,
                     (movingChannel && !isAdd && !isMoving) && styles.channelItemTarget // visual hint
                 ]}
-                onPress={() => isAdd ? addChannel(item) : handleMoveSelect(item, index)}
+                onPress={() => isAdd ? addChannel(item, index) : handleMoveSelect(item, index)}
                 onFocus={() => !isAdd && setFocusedChannel(item)}
                 onBlur={() => !isAdd && setFocusedChannel(null)}
                 onLongPress={() => !isAdd && removeChannel(item.id)}
