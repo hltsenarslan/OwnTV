@@ -2,7 +2,7 @@
   "expo": {
     "name": "OwnTV",
     "slug": "OwnTV",
-    "version": "1.1.1",
+    "version": "1.1.2",
     "runtimeVersion": {
       "policy": "appVersion"
     },

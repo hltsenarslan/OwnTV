@@ -172,7 +172,7 @@ export default function HomeScreen({ navigation }) {
                 )}
             </View>
             <View style={[styles.versionBadge, { bottom: insets.bottom + 10, right: insets.right + 20 }]}>
-                <Text style={styles.versionText}>v1.1.0</Text>
+                <Text style={styles.versionText}>v1.1.2</Text>
             </View>
         </ImageBackground>
     );
