@@ -1,18 +1,5 @@
-
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
-    ActivityIndicator,
-    TextInput,
-    Alert,
-    Image,
-    Animated, // Import Animated
-    Easing,
-} from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput, Alert, Platform, useWindowDimensions, ToastAndroid, TVEventHandler } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getMergedChannels } from '../api/iptv';
 import { saveChannels, loadChannels } from '../utils/storage';
@@ -149,10 +136,40 @@ const SettingsScreen = ({ navigation }) => {
     const [selectedChannelsMap, setSelectedChannelsMap] = useState(new Map()); // id -> channel
     const [movingChannel, setMovingChannel] = useState(null);
     const [saving, setSaving] = useState(false);
+    const [focusedChannel, setFocusedChannel] = useState(null); // Track which channel is focused
 
     useEffect(() => {
         loadData();
     }, []);
+
+    // TV Remote Handler - Remove channel with LEFT arrow key
+    useEffect(() => {
+        if (Platform.OS !== 'android') return;
+
+        const tvEventHandler = new TVEventHandler();
+
+        const handleTVEvent = (component, evt) => {
+            const { eventType } = evt;
+
+            // If LEFT key is pressed and we have a focused channel in the selected list
+            if (eventType === 'left' && focusedChannel) {
+                // Check if this channel is in the selected list
+                if (selectedChannelsMap.has(focusedChannel.id)) {
+                    removeChannel(focusedChannel.id);
+                    ToastAndroid.show(`${focusedChannel.name} removed`, ToastAndroid.SHORT);
+                    setFocusedChannel(null);
+                }
+            }
+        };
+
+        tvEventHandler.enable(null, handleTVEvent);
+
+        return () => {
+            if (tvEventHandler) {
+                tvEventHandler.disable();
+            }
+        };
+    }, [focusedChannel, selectedChannelsMap]);
 
     const loadData = async () => {
         setLoading(true);
@@ -371,8 +388,8 @@ const SettingsScreen = ({ navigation }) => {
                     (movingChannel && !isAdd && !isMoving) && styles.channelItemTarget // visual hint
                 ]}
                 onPress={() => isAdd ? addChannel(item) : handleMoveSelect(item, index)}
-                onLongPress={() => !isAdd && removeChannel(item.id)}
-                delayLongPress={600}
+                onFocus={() => !isAdd && setFocusedChannel(item)}
+                onBlur={() => !isAdd && setFocusedChannel(null)}
                 onLongPress={() => !isAdd && removeChannel(item.id)}
                 delayLongPress={600}
                 activeOpacity={0.7}
@@ -387,7 +404,7 @@ const SettingsScreen = ({ navigation }) => {
                 <View style={styles.channelInfo}>
                     <Text style={styles.channelName} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.channelMeta}>
-                        {isAdd ? `${item.country} | ${item.category}` : (isMoving ? 'Moving... Select new position' : 'Tap to Move • Long Press to Delete')}
+                        {isAdd ? `${item.country} | ${item.category}` : (isMoving ? 'Moving... Select new position' : 'Tap to Move • ← to Delete')}
                     </Text>
                 </View>
 
