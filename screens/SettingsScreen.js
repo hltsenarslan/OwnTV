@@ -681,15 +681,15 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     focusedItem: {
-        backgroundColor: '#007AFF', // Vibrant Blue
+        backgroundColor: '#FF0000', // Red background for testing
         transform: [{ scale: 1.05 }],
-        borderWidth: 3,
-        borderColor: '#00BFFF', // Sky Blue border
-        shadowColor: "#00BFFF",
+        borderWidth: 4,
+        borderColor: '#FFFFFF', // White border
+        shadowColor: "#FF0000",
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.8,
-        shadowRadius: 10,
-        elevation: 15,
+        shadowOpacity: 1,
+        shadowRadius: 15,
+        elevation: 20,
         zIndex: 999,
     },
     versionText: {
