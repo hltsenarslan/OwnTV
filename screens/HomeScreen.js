@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ImageBackground, Dimensions, Alert, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ImageBackground, Dimensions, Alert, Platform, useWindowDimensions, TVEventHandler, ToastAndroid } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // import defaultChannels from '../assets/channels.json'; // Removed dummy channels
@@ -49,6 +49,29 @@ export default function HomeScreen({ navigation }) {
     const insets = useSafeAreaInsets();
     const [bgImage, setBgImage] = useState(null); // URL or file path
     const [channels, setChannels] = useState([]);
+
+    // TV Remote Debugger - Shows key codes in Toast messages
+    useEffect(() => {
+        if (Platform.OS !== 'android') return;
+
+        const tvEventHandler = new TVEventHandler();
+
+        const handleTVEvent = (component, evt) => {
+            const { eventType, eventKeyAction } = evt;
+            const message = `Key: ${eventType}\nAction: ${eventKeyAction || 'press'}`;
+
+            console.log('🎮 TV Remote Event:', evt);
+            ToastAndroid.show(message, ToastAndroid.LONG);
+        };
+
+        tvEventHandler.enable(null, handleTVEvent);
+
+        return () => {
+            if (tvEventHandler) {
+                tvEventHandler.disable();
+            }
+        };
+    }, []);
 
     useFocusEffect(
         React.useCallback(() => {
